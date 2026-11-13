@@ -1,6 +1,6 @@
 ---
 name: teardown
-description: Build an interactive 3D simulator of a real machine or mechanism (an engine, a landing gear, a walking linkage, a pump, a gearbox) as one offline HTML page people can take apart, with live panels driven by the same model that moves the parts, a button for every subsystem, cutaways, camera views and an auto tour that hands control to the visitor; then record it frame by frame to a 60 fps video with a synced procedural score. Use when someone asks how a machine works, wants a "visual explainer", a "simulator", a "cutaway", an "exploded view" or an "interactive 3D lesson", or wants a 3D object shown working rather than described.
+description: Build interactive 3D machine and mechanism visualizations as standalone offline pages and films, or generate native TwinCAT HMI framework controls and NuGet packages driven by PLC property bindings. Use for machine simulators, cutaways, exploded views, visual explainers, and PLC-driven Three.js machine viewers for TwinCAT HMI.
 ---
 
 # Teardown
@@ -8,6 +8,23 @@ description: Build an interactive 3D simulator of a real machine or mechanism (a
 One machine, one page. The visitor sees the thing run, presses a button, and the part doing the work opens up while the gauges around it read the real numbers. Left alone, the page tours itself with a cursor. The same code records a film of the tour, frame by frame, with a score built on the same timeline.
 
 `SKILL_DIR` below is the folder this file lives in. Builds and renders go to `./teardown-out` of the folder you run from.
+
+## Choose the output
+
+For a standalone explainer or film, follow the existing page and capture workflow below.
+
+For TwinCAT HMI, PLC-driven graphics, or a package to install in HMI Engineering,
+read [references/twincat-hmi.md](references/twincat-hmi.md) before implementation.
+Generate the machine-specific control, build target, package and tests in the user's
+output project, not in this skill's installation. This repository teaches that
+workflow; it is not a prebuilt Cessna control library.
+
+In HMI mode, PLC actual feedback is the source of truth. Replace the standalone
+simulation clock and auto tour with native bindable properties and declared events.
+The standalone requirements for perpetual motion, tours, film timelines, sound,
+share-page size and frame-0 thumbnails apply only to standalone output. Keep useful
+3D inspection views and styling, but show a stationary machine when feedback is
+stationary and an explicit unavailable state when feedback is invalid.
 
 ## First run
 
