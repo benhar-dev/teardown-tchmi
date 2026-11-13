@@ -1,0 +1,56 @@
+{
+  "name": "Conveyor",
+  "title": "Belt conveyor with product tracking",
+  "description": "A belt section posed from the encoder distance the PLC reports, with a blade stopper. Products are placed from one distance value, modulo the pitch, so the view is correct at any speed and after any jump.",
+  "units": {"length": "mm", "angle": "deg"},
+  "staleAfterMs": 1500,
+  "view": {"azimuth": 52, "elevation": 26, "margin": 1.15},
+  "layout": {"length": 4000, "width": 700, "beltTop": 600, "pitch": 620, "products": 8},
+  "joints": [
+    {
+      "name": "frame",
+      "type": "fixed",
+      "parent": null,
+      "origin": [0, 0, 0]
+    },
+    {
+      "name": "belt",
+      "type": "prismatic",
+      "parent": "frame",
+      "origin": [0, 0, 0],
+      "axis": [1, 0, 0],
+      "min": 0,
+      "max": 1000000,
+      "home": 0,
+      "range": "clamp",
+      "nothingAttached": "Product flow is drawn by update(): the belt itself does not move as a rigid body, so no geometry hangs off this node.",
+      "feedback": {
+        "property": "BeltDistance",
+        "symbol": "ADS.PLC1.MAIN.fbConveyor.fActDistance",
+        "unit": "mm",
+        "scale": 1,
+        "offset": 0,
+        "description": "Accumulated belt travel from the encoder, millimetres"
+      }
+    },
+    {
+      "name": "stopper",
+      "type": "prismatic",
+      "parent": "frame",
+      "origin": [1500, 600, 0],
+      "axis": [0, 1, 0],
+      "min": 0,
+      "max": 140,
+      "home": 0,
+      "range": "clamp",
+      "feedback": {
+        "property": "StopperPosition",
+        "symbol": "ADS.PLC1.MAIN.fbConveyor.fStopperPos",
+        "unit": "mm",
+        "scale": 1,
+        "offset": 0,
+        "description": "Blade stopper extension above the belt, millimetres"
+      }
+    }
+  ]
+}

@@ -1,0 +1,130 @@
+{
+  "name": "Robot6R",
+  "title": "6-axis articulated robot",
+  "description": "A generic 6-axis arm posed from the six actual axis positions the PLC reports. Lengths are millimetres, angles degrees.",
+  "units": {"length": "mm", "angle": "deg"},
+  "staleAfterMs": 2000,
+  "view": {"azimuth": 38, "elevation": 20, "margin": 1.3},
+  "joints": [
+    {
+      "name": "base",
+      "type": "fixed",
+      "parent": null,
+      "origin": [0, 0, 0]
+    },
+    {
+      "name": "a1",
+      "type": "revolute",
+      "parent": "base",
+      "origin": [0, 180, 0],
+      "axis": [0, 1, 0],
+      "min": -170,
+      "max": 170,
+      "home": 0,
+      "range": "clamp",
+      "feedback": {
+        "property": "Axis1Position",
+        "symbol": "ADS.PLC1.MAIN.fbRobot.aAxis[1].fActPos",
+        "unit": "deg",
+        "scale": 1,
+        "offset": 0,
+        "description": "Actual position of axis 1 (base rotation), degrees"
+      }
+    },
+    {
+      "name": "a2",
+      "type": "revolute",
+      "parent": "a1",
+      "origin": [0, 320, 0],
+      "axis": [1, 0, 0],
+      "min": -110,
+      "max": 110,
+      "home": -20,
+      "range": "clamp",
+      "feedback": {
+        "property": "Axis2Position",
+        "symbol": "ADS.PLC1.MAIN.fbRobot.aAxis[2].fActPos",
+        "unit": "deg",
+        "scale": 1,
+        "offset": 0,
+        "description": "Actual position of axis 2 (shoulder), degrees"
+      }
+    },
+    {
+      "name": "a3",
+      "type": "revolute",
+      "parent": "a2",
+      "origin": [0, 700, 0],
+      "axis": [1, 0, 0],
+      "min": -140,
+      "max": 140,
+      "home": 40,
+      "range": "clamp",
+      "feedback": {
+        "property": "Axis3Position",
+        "symbol": "ADS.PLC1.MAIN.fbRobot.aAxis[3].fActPos",
+        "unit": "deg",
+        "scale": 1,
+        "offset": 0,
+        "description": "Actual position of axis 3 (elbow), degrees"
+      }
+    },
+    {
+      "name": "a4",
+      "type": "revolute",
+      "parent": "a3",
+      "origin": [0, 560, 0],
+      "axis": [0, 1, 0],
+      "min": -180,
+      "max": 180,
+      "home": 0,
+      "range": "clamp",
+      "feedback": {
+        "property": "Axis4Position",
+        "symbol": "ADS.PLC1.MAIN.fbRobot.aAxis[4].fActPos",
+        "unit": "deg",
+        "scale": 1,
+        "offset": 0,
+        "description": "Actual position of axis 4 (wrist roll), degrees"
+      }
+    },
+    {
+      "name": "a5",
+      "type": "revolute",
+      "parent": "a4",
+      "origin": [0, 180, 0],
+      "axis": [1, 0, 0],
+      "min": -120,
+      "max": 120,
+      "home": 25,
+      "range": "clamp",
+      "feedback": {
+        "property": "Axis5Position",
+        "symbol": "ADS.PLC1.MAIN.fbRobot.aAxis[5].fActPos",
+        "unit": "deg",
+        "scale": 1,
+        "offset": 0,
+        "description": "Actual position of axis 5 (wrist pitch), degrees"
+      }
+    },
+    {
+      "name": "a6",
+      "type": "revolute",
+      "parent": "a5",
+      "origin": [0, 150, 0],
+      "axis": [0, 1, 0],
+      "min": -360,
+      "max": 360,
+      "home": 0,
+      "range": "clamp",
+      "feedback": {
+        "property": "Axis6Position",
+        "symbol": "ADS.PLC1.MAIN.fbRobot.aAxis[6].fActPos",
+        "unit": "deg",
+        "scale": 1,
+        "offset": 0,
+        "description": "Actual position of axis 6 (flange roll), degrees"
+      }
+    }
+  ]
+}
