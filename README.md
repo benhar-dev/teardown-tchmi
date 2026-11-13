@@ -2,6 +2,12 @@
 
 A Claude Code skill that turns any machine into a 3D simulator you can take apart.
 
+This fork also teaches the skill to generate native TwinCAT HMI controls and
+installable NuGet packages driven by PLC property bindings. See the output-mode
+guidance in [SKILL.md](SKILL.md) and the [TwinCAT HMI workflow](references/twincat-hmi.md).
+Machine-specific controls and packages are generated in your project; this fork
+does not ship a prebuilt Cessna HMI control. The standalone workflow remains available.
+
 Ask how something works. Claude builds it as one offline HTML page: the machine runs in the middle, every panel around it reads the real numbers, a button opens the part doing the work, and when nobody touches it the page tours itself.
 
 ![Mellis HB-7 robotic bee simulator](docs/bee.gif)
