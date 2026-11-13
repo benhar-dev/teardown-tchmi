@@ -67,11 +67,28 @@ export const fmt = (n, d = 0) =>
   Number(n).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
 export const pad = (n, w) => String(Math.max(0, Math.floor(n))).padStart(w, '0');
 
+/**
+ * Escape for HTML text and quoted attributes. Anything that reaches innerHTML
+ * from the config (?config=, ?title=) goes through this: a built page is a
+ * static file anyone can hand a URL to.
+ */
+export const escHtml = (s) =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+// Keys that would reach an object's prototype instead of its own properties.
+const UNSAFE_KEY = new Set(['__proto__', 'constructor', 'prototype']);
+
 /** Deep merge plain objects; arrays and scalars from `b` replace `a`. */
 export const merge = (a, b) => {
   if (!b || typeof b !== 'object' || Array.isArray(b)) return b === undefined ? a : b;
   const out = {...a};
   for (const k of Object.keys(b)) {
+    if (UNSAFE_KEY.has(k)) continue;
     out[k] =
       a && typeof a[k] === 'object' && !Array.isArray(a[k]) && a[k] !== null ? merge(a[k], b[k]) : b[k];
   }

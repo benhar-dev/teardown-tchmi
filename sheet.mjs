@@ -81,7 +81,16 @@ times = [...new Set(times.map((t) => Math.min(Math.max(t, 0), duration - eps).to
   .sort((a, b) => a - b);
 
 const base = video.replace(/\.[^.]+$/, '') + '_sheets';
+// --name becomes a directory this script deletes recursively: keep it one plain segment.
+if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name) || name.includes('..')) {
+  console.error(`bad --name ${name}: letters, digits, dot, dash and underscore only`);
+  process.exit(1);
+}
 const dir = path.join(base, name);
+if (path.relative(base, dir) !== name) {
+  console.error(`refusing to write outside ${base}`);
+  process.exit(1);
+}
 fs.rmSync(dir, {recursive: true, force: true});
 fs.mkdirSync(dir, {recursive: true});
 
