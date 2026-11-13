@@ -1,20 +1,10 @@
 # teardown-tchmi
 
-An AI coding-agent skill that turns any machine into a 3D simulator you can take apart.
+An AI coding-agent skill that turns a machine into a **native TwinCAT HMI control**: a 3D view of the real mechanism, posed from the PLC's actual axis feedback, packaged as a NuGet you can install in HMI Engineering.
 
-This fork also teaches the skill to generate native TwinCAT HMI controls and
-installable NuGet packages driven by PLC property bindings. See the output-mode
-guidance in [SKILL.md](SKILL.md) and the [TwinCAT HMI workflow](references/twincat-hmi.md).
-Machine-specific controls and packages are generated in your project; this fork
-does not ship a prebuilt Cessna HMI control. The standalone workflow remains available.
+Robots, conveyors, gantries, presses — anything with axes. You bring the axis list and the CAD; the agent builds the contract, the viewer, the control and the package, and reviews the result as sheets of poses.
 
-Ask how something works. Claude builds it as one offline HTML page: the machine runs in the middle, every panel around it reads the real numbers, a button opens the part doing the work, and when nobody touches it the page tours itself.
-
-![Mellis HB-7 robotic bee simulator](docs/bee.gif)
-
-| Telson SC-8 robotic scorpion | Pelagos OC-8 robotic octopus |
-|---|---|
-| ![Telson SC-8 robotic scorpion](docs/scorpion.gif) | ![Pelagos OC-8 robotic octopus](docs/octopus.gif) |
+This is TwinCAT HMI only. There is no standalone page, no recorded film, no sound and no auto tour: if the machine is not moving, the picture is not moving.
 
 ## Install
 
@@ -30,47 +20,52 @@ npx skills add benhar-dev/teardown-tchmi -g -a claude-code
 npx skills add benhar-dev/teardown-tchmi -g -a codex
 ```
 
-Both commands install the forked skill rather than the upstream `elvarofficial/teardown` skill. It can coexist with the upstream skill because it has a distinct name.
-
-Then, once, in the installed skill folder (for example `~/.claude/skills/teardown-tchmi` for Claude Code):
+Then, once, in the installed skill folder (for example `~/.claude/skills/teardown-tchmi`):
 
 ```
 npm install && npx playwright install chromium
 ```
 
-You need Node.js 20 or newer. For the video you also need `ffmpeg`, and for the sound Python 3.
+Node 20 or newer. Chromium is only used for pose sheets on your development machine — a generated control is a bundled `.js` file in a package and needs nothing but the HMI client.
 
 ## Use
 
-Ask Claude Code in plain words:
+Ask in plain words:
 
-> Build me a simulator of a 4-stroke motorcycle engine I can take apart.
+> Build me an HMI control for our 6-axis robot. Axis feedback is in `MAIN.fbRobot.aAxis[1..6].fActPos`.
 
-> How does a mechanical watch keep time? Show me as a simulator.
+> Make an HMI view of the infeed conveyor driven by the encoder distance, with the blade stopper.
 
-> Make a teardown of a hydraulic excavator arm and record a 20-second video of it.
+> Here is the STEP file for our gantry. Turn it into a TwinCAT HMI control bound to the X, Y and Z actual positions.
 
-Or open one of the 3 examples first:
+Or drive the examples first:
 
 ```
-node sims/build.mjs v8-live          # teardown-out/dist/v8-live.html
-node sims/build.mjs cessna-live
-node sims/build.mjs strandbeest-live
+node harness/check.mjs                                    # contracts and adapter
+node build.mjs harness                                    # the review page
+node harness/sheet.mjs robot-6r --trace axes --cols 3     # a sheet of poses
+node harness/sheet.mjs gantry --trace states              # no data, stale, offline, out of range, NaN
 ```
+
+Open `teardown-out/harness/index.html?machine=robot-6r` to drive the axes with sliders.
 
 ## What is inside
 
 | | |
 |---|---|
-| `SKILL.md` | What Claude reads: how a machine is built, the rules that make it look right, the review loop. |
-| `sims/kit/` | Runtime, stage, shader warm-up. |
-| `sims/v8-*`, `sims/cessna-*`, `sims/strandbeest-*` | 3 complete machines. `-shared` is the machine, `-live` the page you drive, `-film` the recorded tour. |
-| `sims/build.mjs` | Bundles a machine into one HTML file, three.js and fonts inlined. |
-| `sims/capture.mjs` | Renders the film frame by frame to a 60 fps mp4, or to review sheets of stills. |
-| `sfx/`, `run_sfx.py` | Procedural sound on the film's timeline, mastered to −14 LUFS. |
+| `SKILL.md` | What the agent reads: the contract, the rules, the review loop. |
+| `references/twincat-hmi.md` | Framework metadata, properties, lifecycle, packaging, acceptance levels. |
+| `references/cad-pipeline.md` | STEP to glTF, decimation budgets, and extracting joint frames from CAD. |
+| `references/review-loop.md` | What to run, what to look at, what to report. |
+| `kit/` | Pose layer, stage, shared renderer, viewer, control adapter, placeholder parts. |
+| `harness/` | Headless checks, feedback traces, the review page, pose sheets, a framework double. |
+| `examples/` | A 6-axis robot, a conveyor with product tracking, a three-axis gantry. |
+| `build.mjs`, `scaffold.mjs` | Bundle a control; write a package skeleton into your project. |
+
+Machine-specific controls and packages are generated in **your** project. This repository teaches the workflow; it does not ship a control library.
 
 ## Credits
 
-Built on [whaleyxbt/claude-motion](https://github.com/whaleyxbt/claude-motion) (MIT): the runtime, frame capture, sound engine and review rules come from there. Recorded samples are CC0 from Freesound, prepared by [Barty-Bart/motion-graphics](https://github.com/Barty-Bart/motion-graphics); sources in `sfx/samples/SOURCES.md`.
+Derived from [elvarofficial/teardown](https://github.com/elvarofficial/teardown) (MIT), built on [whaleyxbt/claude-motion](https://github.com/whaleyxbt/claude-motion) (MIT). The standalone film and sound pipeline from those projects has been removed.
 
 MIT licence.

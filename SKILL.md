@@ -1,30 +1,15 @@
 ---
 name: teardown-tchmi
-description: Build interactive 3D machine and mechanism visualizations as standalone offline pages and films, or generate native TwinCAT HMI framework controls and NuGet packages driven by PLC property bindings. Use for machine simulators, cutaways, exploded views, visual explainers, and PLC-driven Three.js machine viewers for TwinCAT HMI.
+description: Generate native TwinCAT HMI controls that show a machine in 3D, posed from PLC actual feedback - robots, conveyors, gantries, presses, any mechanism with axes. Builds the machine contract, the viewer, the control adapter and an installable NuGet package, and reviews the result as pose sheets. Use for PLC-driven machine graphics, HMI machine views, 3D visualisation of TwinCAT axes, and turning CAD into an HMI control.
 ---
 
-# Teardown
+# Teardown for TwinCAT HMI
 
-One machine, one page. The visitor sees the thing run, presses a button, and the part doing the work opens up while the gauges around it read the real numbers. Left alone, the page tours itself with a cursor. The same code records a film of the tour, frame by frame, with a score built on the same timeline.
+One machine, one control. The PLC says where the axes are; the control shows the machine standing exactly there, and shows nothing it cannot prove.
 
-`SKILL_DIR` below is the folder this file lives in. Builds and renders go to `./teardown-out` of the folder you run from.
+This skill produces **native TwinCAT HMI controls and the NuGet packages that install them**, and nothing else. There is no standalone page, no film, no sound and no auto tour. If a machine is not moving, the picture is not moving.
 
-## Choose the output
-
-For a standalone explainer or film, follow the existing page and capture workflow below.
-
-For TwinCAT HMI, PLC-driven graphics, or a package to install in HMI Engineering,
-read [references/twincat-hmi.md](references/twincat-hmi.md) before implementation.
-Generate the machine-specific control, build target, package and tests in the user's
-output project, not in this skill's installation. This repository teaches that
-workflow; it is not a prebuilt Cessna control library.
-
-In HMI mode, PLC actual feedback is the source of truth. Replace the standalone
-simulation clock and auto tour with native bindable properties and declared events.
-The standalone requirements for perpetual motion, tours, film timelines, sound,
-share-page size and frame-0 thumbnails apply only to standalone output. Keep useful
-3D inspection views and styling, but show a stationary machine when feedback is
-stationary and an explicit unavailable state when feedback is invalid.
+`SKILL_DIR` below is the folder this file lives in. Builds, sheets and scaffolded packages go to `./teardown-out` of the folder you run from.
 
 ## First run
 
@@ -32,130 +17,123 @@ stationary and an explicit unavailable state when feedback is invalid.
 cd "$SKILL_DIR" && npm install && npx playwright install chromium
 ```
 
-The pages need nothing else. The video needs `ffmpeg` on PATH and the score needs Python 3 (standard library only). Set `FFMPEG`, `PYTHON` or `CHROMIUM` to point at other binaries.
+Node 20 or newer. Chromium is only for pose sheets; nothing at runtime needs it. There is no ffmpeg and no Python dependency.
 
-## The 3 examples
+## The order of work
 
-Build one, open the HTML, press buttons. Copy the closest one when you start a new machine.
+Work in this order. Each step is checkable before the next one costs anything.
+
+1. **The contract** — `machine.json`: axes, units, limits, PLC symbols, validity. Nothing is drawn until this is agreed.
+2. **Geometry** — placeholder primitives now, decimated CAD when it arrives. Both hang off the same joint nodes.
+3. **The control** — scaffold the package, bind the properties, raise the events.
+4. **The review** — `check.mjs`, then pose sheets, then Engineering, then a live PLC. Report which of those you actually did.
+
+## machine.json is the one source
+
+Everything is generated from this file: the Object3D hierarchy, the control's bindable properties, the feedback traces the harness drives, and the documentation. Nothing about the machine's structure is written twice, so nothing can drift.
+
+```json
+{
+  "name": "Robot6R",
+  "units": {"length": "mm", "angle": "deg"},
+  "staleAfterMs": 2000,
+  "joints": [
+    {"name": "base", "type": "fixed", "parent": null, "origin": [0, 0, 0]},
+    {"name": "a1", "type": "revolute", "parent": "base", "origin": [0, 180, 0], "axis": [0, 1, 0],
+     "min": -170, "max": 170, "home": 0, "range": "clamp",
+     "feedback": {"property": "Axis1Position", "symbol": "ADS.PLC1.MAIN.fbRobot.aAxis[1].fActPos",
+                  "unit": "deg", "scale": 1, "offset": 0, "description": "Actual position of axis 1"}}
+  ]
+}
+```
+
+- **Lengths are millimetres, angles are degrees.** CAD and PLC axis data arrive that way; the kit never converts behind your back.
+- `type` is `revolute`, `prismatic` or `fixed`. A machine with one axis has one joint; a six-axis robot has six.
+- `origin` is relative to the parent joint, in the parent's frame. This is the part CAD does not give you — see [references/cad-pipeline.md](references/cad-pipeline.md).
+- `min`/`max` are the real limits, and `range` says what happens outside them: `clamp` (default), `reject` or `pass`.
+- `feedback.symbol` is the PLC symbol the property is expected to bind to. Discover it; do not invent it.
+- Geometry attaches only to joints that physically move. A conveyor's belt distance and a gripper's opening drive `update()` instead — see the conveyor and gantry examples.
+
+Check it before you build anything: `node harness/check.mjs ./my-machine`.
+
+## The three examples
+
+Copy the closest one.
 
 | | The machine | What drives it | Worth stealing |
 |---|---|---|---|
-| `v8-*` | A cross-plane V8 with glass liners: the charge burns inside the cylinder you track, valves lift on their cams, 8 pistons move from the exact slider-crank. | Crank angle. Firing order 1-8-4-3-6-5-7-2, a chamber pressure model for the indicator diagram. | Cutaway modes (glass, section, solid), the firing order as a cylinder picker, live charts synced to the crank. |
-| `cessna-*` | The Cessna 337 main landing gear folding into the airframe on takeoff and dropping on landing. | Stroke 0..1: a 201 mm rack turns a 32-tooth pinion (module 4 mm) through exactly 180°. | One degree of freedom posing a whole mechanism, flight phases as functions of time, a runway that rolls under the model. |
-| `strandbeest-*` | Theo Jansen's Strandbeest, 20 legs on one crankshaft, walking broadside over sand. | Wind. The crank speed is integrated from it; every joint follows by circle intersection from Jansen's 11 link lengths. | An exact linkage solver in 67 lines, instanced tubes, foot traces, a contact chart of all 20 feet. |
-
-Each comes in 3 folders: `<name>-shared/` holds the machine, `<name>-film/` the recorded tour, `<name>-live/` the page you drive.
+| `examples/robot-6r` | A 6-axis articulated arm. | Six actual axis positions, degrees. | A parent chain of revolutes; limit markers that appear only on the limit. |
+| `examples/conveyor` | A belt section with product tracking and a blade stopper. | One encoder distance, millimetres. | Products placed modulo the pitch from one distance: right at any speed, survives a counter jump, cannot drift. |
+| `examples/gantry` | A three-axis pick-and-place with a gripper. | Three positions and a jaw opening. | A mast stretched by scale between trolley and axis; two jaws mirrored from one value. |
 
 ```
-node "$SKILL_DIR/sims/build.mjs" v8-live          # → teardown-out/dist/v8-live.html, offline, ~800 KB
-node "$SKILL_DIR/sims/build.mjs"                  # all 6
+node harness/check.mjs                          # the contracts and the adapter
+node build.mjs harness                          # the review page
+node harness/sheet.mjs robot-6r --trace axes    # read the result
 ```
 
-## How a machine is built
+## How a control is built
 
-One folder per machine, split by job. The examples follow this exactly:
-
-| File | Job |
+| Piece | Job |
 |---|---|
-| `kin.js` / `gear.js` / `jansen.js` | The math. Real dimensions in real units, one input (crank angle, stroke, wind) and every pose and readout as a function of it. No three.js in here. |
-| `engine.js` / `gear.js` / `beast.js` | The geometry, built from code: lathed parts, tubes, instanced links. `update(input)` poses it. |
-| `stage.js` | Studio, lights, shadows, post (GTAO, bloom). `frame(state, cam)` draws one frame. |
-| `console.js` | The overlay: fixed 1600 x 900 CSS layout of panels, charts, toggles, callouts with leaders. `update(state)` redraws it from the frame's state. |
-| `film.js` | A `SCRIPT` of operator moves (views, isolate, cutaway, throttle) and `render(t)` as a pure function of time. |
-| `live.js` | The same machine in real time: buttons, sliders, orbit, zoom, keys. With no input it plays `film.js`'s script as an auto tour with a cursor; any click, drag, wheel or key hands control over, 25 s of quiet hands it back. |
-| `score.py` | The sound on the film's timeline. |
+| `machine.json` | The contract. Axes, units, limits, symbols, validity. |
+| `geometry.js` | `build(THREE, machine, nodes)` attaches meshes to joint nodes and returns `{update(values, states), dispose()}`. |
+| `kit/pose.js` | machine.json → skeleton, and feedback → pose. Deterministic, no clock, no state. |
+| `kit/viewer.js` | One instance's scene, camera, canvas and lifecycle. Draws on change only. |
+| `kit/control-base.js` | The adapter: conversion, range policy, change detection, validity, events. Imports no TcHmi, so it is testable anywhere. |
+| `scaffold.mjs` | Writes the package: Description.json, Template.html, Style.css, Control.js, Manifest.json, .nuspec. |
 
-For a machine outside `SKILL_DIR`, make a folder with a `main.js` and import the kit by name: `import {runSim} from 'teardown-kit/runtime.js'`. Build it with `node "$SKILL_DIR/sims/build.mjs" ./my-machine`.
+The generated control is a thin shell: framework setters call `adapter.setProperty`, adapter events become `TcHmi.EventProvider.raise`. Machine logic never sits in the shell.
 
 ## Rules that decide whether it works
 
-1. **Start from a reference, never from imagination.** A photo, a cutaway drawing from a manual, a clip of the real thing. Build against it and compare frame by frame. Machines invented from a sentence come out generic every time; the same model rebuilds a real one closely when it has something to match.
-2. **Real numbers, one source.** Get the real dimensions first (bore, stroke, tooth count, link lengths). Every gauge, chart and label reads from the same function that poses the parts, so nothing on screen can disagree with the motion. Check one by hand: in the Cessna, 32 teeth × 4 mm module is a 128 mm pitch diameter, and half its circumference is the 201 mm stroke.
-3. **One input drives everything.** Pose from the crank angle, the stroke or the wind. Nothing is keyframed by hand, so the film, the live page and the score never drift.
-4. **The part doing the work opens up.** Isolate it, cut it, x-ray it. A camera that goes inside is worth more than ten orbits.
-5. **Light studio, one accent.** Pale backgrounds read in a feed; dark ones lose the first second. The accent marks the thing that is changing. Watch near-white parts on a pale backdrop: give them an ink outline or a darker ground.
-6. **Pick the camera for the mechanism.** A planar linkage seen face-on collapses into a lattice; a 3/4 view along the spine keeps every leg readable.
-7. **Fix collisions with a number.** When a part pokes through another, scale or move it in the parameter block. Never hide it with the camera.
+1. **The PLC is the only source of actual state.** Never advance a pose from wall time, an animation loop, a setpoint or an operator gesture. If feedback stops, the machine stops. A view that keeps moving when the PLC has gone quiet is lying to an operator standing in front of a machine.
+2. **Unavailable is the default.** A control shows "no data" until something valid arrives, and says so plainly when data is stale, out of range or the PLC is not answering. A numeric binding alone proves nothing about connection quality: bind a real validity or watchdog signal as well. A toggling test bit is not a watchdog.
+3. **Real numbers, one source.** Limits, units, scale and offset live in `machine.json` and nowhere else. Check one by hand against the machine.
+4. **Draw on change.** Feedback arrives at the subscription rate, usually 100–500 ms. An idle screen must cost nothing. There is no `requestAnimationFrame` loop in a control.
+5. **Commands are separate from feedback.** If the user asks for buttons, define separate request properties and events with deliberately configured HMI write actions, and move the pose only when acknowledged feedback moves. A feedback-only viewer needs no ADS client and writes no symbols.
+6. **Colour means something.** Accent is the selected or active part; amber and red are warning and fault; grey is unavailable. Nothing animates for delight. Motion means the machine moved.
+7. **Start from the real machine.** A photo, a GA drawing, the CAD, the axis list from the PLC. Machines invented from a sentence come out generic, and an operator spots it instantly.
 
-## Live page rules
+## Rendering on a panel PC
 
-- **Test on an integrated GPU.** A page that runs at 60 fps on a desktop card can drop to 15 fps on a laptop's built-in one. The examples carry quality tiers (`TIERS` in `live.js`): no AO, lower pixel ratio, smaller shadow maps, panels redrawn every other frame. Find the expensive shader first: a displacement computed 5 times per vertex costs more than every tier together.
-- **Warm the shaders.** `kit/warm.js` compiles every program in parallel before the first frame, so the page never freezes on first draw.
-- **Keep the page under 1 MB.** Link crawlers (X, Slack) read the share card from the HTML and give up on a 15 MB page. Big models go out as files next to the page: `build.json` → `{"external": {"heavy.glb": "light.glb"}}`.
+The target is an industrial panel with an integrated GPU, running for months without a reload, often several controls on one screen.
 
-## render(t) contract
+- **One WebGL context per client.** `kit/renderers.js` shares a single renderer across every viewer and blits into each control's own canvas. A browser gives a page 8–16 contexts before it starts killing the oldest; a line overview would lose views at random without this.
+- **No post-processing.** No GTAO, no bloom, no tone-mapped film look. They cost the most of anything in the frame and in factory light they mostly eat contrast.
+- **Cap the pixel ratio** (1.5 by default). A 4K panel at full ratio quadruples the cost for no readable gain.
+- **Handle context loss.** `webglcontextlost` must be prevented and recovered from with a visible unavailable state. On a kiosk browser running for months this will happen.
+- **Warm the shaders** once at attach (`kit/warm.js`), so the first visible frame is not a freeze.
+- **Budget the geometry.** Raw CAD tessellation is millions of triangles and will not survive an Elkhart Lake panel. See [references/cad-pipeline.md](references/cad-pipeline.md).
+- **Touch targets at least 38 px**, no hover-only affordances, and states readable without colour.
 
-```js
-import {runSim} from '../kit/runtime.js';
+## Security rules
 
-const DEFAULTS = {duration: 20, fps: 60, hud: {enabled: false}, director: {enabled: false}};
+- **PLC data is data, never markup.** Whoever can write a string symbol — a recipe name, an operator message, alarm text — would otherwise be writing the HMI's DOM. Build the DOM with `textContent` and `createElement`. If a template string is unavoidable, every interpolated value goes through `escHtml` from `kit/util.js`. There is no `innerHTML` in this kit and there should be none in a generated control.
+- **Reject before you draw.** Non-finite values never reach three.js. Out-of-range values follow the declared policy and are never written back to the PLC as a correction.
+- **No CDN, no import map, no runtime module resolution.** Everything is bundled into the package, with third-party licences preserved.
+- **Never package credentials**, server settings or a customer's PLC project.
 
-runSim(DEFAULTS, async ({cfg, canvas, capture}) => {
-  // build the scene, precompute anything stateful
-  return {render(t) { /* draw frame t from scratch */ return {}; }, resize() {}};
-});
-```
+## The review loop
 
-- `render(t)` is pure: no `Math.random` (use `rng(seed)` from `kit/util.js` at setup), no `Date`, no state carried between frames. Capture calls it at arbitrary times.
-- Anything that moves by its own rules (agents, particles) is simulated once at load into typed arrays; `render` only reads them. A quantity integrated over time (the Strandbeest's crank under a changing wind) is integrated in closed form or tabulated at load.
-- Every beat goes into `<name>-film/timeline.json` in seconds. The score reads the same file.
-- Frame 0 is the thumbnail. It must already show the machine.
+You cannot watch a machine screen from here, but you can read one tile per pose.
 
-## Commands
+1. `node harness/check.mjs ./my-machine` — the contract and the adapter. Seconds, and it either passes or it does not.
+2. `node build.mjs harness --machine ./my-machine` then `node harness/sheet.mjs my-machine --trace axes --cols 3`.
+3. Read every tile against the checklist in [references/review-loop.md](references/review-loop.md), and read the printed table: a tile whose validity is not what the trace asked for is a bug however good the picture looks.
+4. `--trace states` is not optional. No data, stale, offline, out of range and NaN are the states that reach an operator on a bad day.
+5. Fix, rebuild, go back to 1. Stop when a full pass finds nothing.
 
-```
-node "$SKILL_DIR/sims/build.mjs" v8-film
-node "$SKILL_DIR/sims/capture.mjs" v8-film --size 1600x900 --dpr 1.2 --stills beats --cols 4 --out teardown-out/v8-beats.png
-node "$SKILL_DIR/sims/capture.mjs" v8-film --size 1600x900 --dpr 1.2 --still 12.5 --out teardown-out/v8-12.5.png
-node "$SKILL_DIR/sims/capture.mjs" v8-film --size 1600x900 --dpr 1.2 --out teardown-out/v8-silent.mp4
-python "$SKILL_DIR/run_sfx.py" "$SKILL_DIR/sims/v8-shared/score.py"
-ffmpeg -y -i teardown-out/v8-silent.mp4 -i teardown-out/v8-score.wav -map 0:v -map 1:a -c:v copy -c:a aac -b:a 256k -shortest -movflags +faststart teardown-out/v8.mp4
-node "$SKILL_DIR/wave.mjs" teardown-out/v8.mp4 --timeline "$SKILL_DIR/sims/v8-film/timeline.json"
-```
+Never report a control as done without reading sheets of the current build.
 
-`--size` is the CSS layout and `--dpr` multiplies it: 1600 x 900 at 1.2 gives 1920 x 1080. Capture prints the GPU it got; a software renderer means the GPU flags in `paths.mjs` did not take.
+## Delivering into TwinCAT HMI
 
-## Review loop
+[references/twincat-hmi.md](references/twincat-hmi.md) is the detail: framework metadata, property schemas, lifecycle, packaging and the acceptance levels. Read it before generating a control.
 
-You cannot watch the video; you can look at frames. Never report a machine as done without reading sheets of the current render.
+Generate the machine, the control and the package **in the user's output project**, never into this skill's installation. This repository teaches the workflow; it is not a control library.
 
-1. `--stills beats`: one tile per timeline beat, 0.3 s after it, each labelled `t=`.
-2. Read every tile against the checklist below.
-3. Zoom in: `--stills every:0.2 --from A --to B` for a transition, `--still T` for one full frame.
-4. Fix, rebuild, go back to 1. Stop when a full pass finds nothing.
-5. Final: `node "$SKILL_DIR/sheet.mjs" --video <final.mp4> --timeline <timeline.json>` and read that too: it shows what the encoder wrote.
-
-Checklist:
-
-- **The mechanism.** Every part that should touch touches; nothing passes through anything; the numbers on the panels match the pose.
-- **Composition.** One focal point per frame. Nothing important within 60 px of an edge. Labels never cover the part they name.
-- **Type.** Nothing clipped. The key readout reads at phone width.
-- **3D.** Bloom eats detail: keep emissive layers under 1.0. Near-white surfaces blow out. Glossy metal under a low light streaks: roughness ≥ 0.45 and envMapIntensity ≈ 0.5 on big surfaces.
-- **Timing.** Each state holds long enough to read: 1 s for a short phrase plus 0.25 s per word beyond three.
-
-## three.js traps the examples already hit
-
-- `smoothstep(a, b, x)` with `a > b` returns 0 on Windows (ANGLE/D3D). Write `1.0 - smoothstep(b, a, x)`.
-- A `ShadowMaterial` or a decal a fraction of a millimetre above the floor loses the depth test inside a post-processing render target. Give it `polygonOffset`.
-- A quad laid into the ground with a mirrored mapping gets culled as a back face. Use `DoubleSide`.
-- One NaN pixel blacks out the whole frame through bloom. Clamp every `pow()` base in a shader.
-- GTAO on a clipped (cutaway) model needs the same clipping planes on `gtao.normalMaterial`, or the cut half returns as a pale ghost.
-
-## Sound
-
-`sfx/` synthesises every sound in pure Python (48 kHz, reproducible) and reads the film's timeline, so sound cannot drift out of sync. `python "$SKILL_DIR/run_sfx.py" --list` shows the generators. `sample()` adds the recorded CC0 sounds in `sfx/samples/`. `sfx/score_kit.py` has the beds and accents the 3 scores use: a chord bed, a soft thud per power stroke, a motor, air under a drag.
-
-- Every time comes from the timeline, never a typed number.
-- Mastering is automatic: −14 LUFS, true peak ≤ −2 dBFS.
-- Accent, never narrate: continuous motion stays silent. One key for every tonal sound.
-
-## Taste, with numbers
-
-- Easing: entrances `cubic-bezier(0.16, 1, 0.3, 1)`, exits `cubic-bezier(0.6, 0, 0.9, 0.35)` at half the entrance's length, state to state `cubic-bezier(0.65, 0, 0.35, 1)`. Linear only for continuous motion.
-- The machine fills 60-70% of its viewport. Labels never under 34 px on a 1080 canvas.
-- One accent, and it means something: the part that is working right now.
-- Nothing dead-still: one element always alive.
+Be exact about what was tested. A pose sheet is not Engineering, the framework double in `harness/double.js` is not the framework, and neither is a live PLC.
 
 ## Credits
 
-The kit, frame capture, sfx engine and review rules come from [whaleyxbt/claude-motion](https://github.com/whaleyxbt/claude-motion) (MIT). The recorded samples are CC0 from Freesound, trimmed by [Barty-Bart/motion-graphics](https://github.com/Barty-Bart/motion-graphics) (MIT); sources in `sfx/samples/SOURCES.md`.
+Derived from [elvarofficial/teardown](https://github.com/elvarofficial/teardown) (MIT), itself built on [whaleyxbt/claude-motion](https://github.com/whaleyxbt/claude-motion) (MIT). The standalone film and sound pipeline from those projects has been removed; `references/jansen-linkage.js` is kept as a worked example of closed-form linkage maths.

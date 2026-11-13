@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Machine review harness</title>
+<style>
+  :root {
+    --bg: #f4f6f8; --fg: #11161c; --mute: #5b6670; --line: #d4dade; --panel: #ffffff;
+    color-scheme: light;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1216; --fg: #e8edf2; --mute: #93a1ad; --line: #242c34; --panel: #151b21;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+  }
+  .head { padding: 16px 20px 0; }
+  .head h1 { font-size: 17px; margin: 0; }
+  .head p { margin: 2px 0 0; color: var(--mute); font-size: 12px; }
+  .grid { display: grid; gap: 12px; padding: 16px 20px 24px; }
+  .tile { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .host { position: relative; width: 100%; height: 260px; }
+  .host.big { height: calc(100vh - 32px); }
+  figcaption { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-top: 1px solid var(--line); }
+  figcaption b { font-size: 12px; }
+  figcaption span { font-size: 11px; color: var(--mute); font-family: Consolas, "Courier New", monospace; }
+
+  /* The viewer's unavailable overlay. A scaffolded control carries the same
+     rule in its own scoped Style.css. */
+  [data-machine-overlay] {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--mute); background: color-mix(in srgb, var(--bg) 72%, transparent);
+    pointer-events: none;
+  }
+
+  .single { display: grid; grid-template-columns: 1fr 320px; gap: 16px; padding: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
+  .panel h1 { font-size: 15px; margin: 0 0 10px; }
+  .row { display: grid; grid-template-columns: 120px 1fr 56px; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .tag { font-size: 11px; color: var(--mute); }
+  .val { font-size: 11px; text-align: right; font-family: Consolas, "Courier New", monospace; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+  button {
+    font: inherit; font-size: 12px; padding: 6px 10px; min-height: 32px;
+    background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; cursor: pointer;
+  }
+  .readout { margin: 0; font-family: Consolas, "Courier New", monospace; font-size: 11px; color: var(--mute); white-space: pre; }
+  .error { padding: 20px; color: #c0392b; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+/*BUNDLE*/
+</script>
+</body>
+</html>

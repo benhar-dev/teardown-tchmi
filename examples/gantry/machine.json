@@ -1,0 +1,94 @@
+{
+  "name": "Gantry",
+  "title": "Three-axis gantry with gripper",
+  "description": "A pick-and-place gantry posed from three actual axis positions and a jaw opening. The vertical axis is declared downwards, which is how the machine's own axis counts.",
+  "units": {"length": "mm", "angle": "deg"},
+  "staleAfterMs": 1500,
+  "view": {"azimuth": 40, "elevation": 18, "margin": 1.2},
+  "layout": {"span": 2400, "depth": 1400, "height": 1600, "mastBase": 220},
+  "joints": [
+    {
+      "name": "frame",
+      "type": "fixed",
+      "parent": null,
+      "origin": [0, 0, 0]
+    },
+    {
+      "name": "gx",
+      "type": "prismatic",
+      "parent": "frame",
+      "origin": [-1200, 1600, 0],
+      "axis": [1, 0, 0],
+      "min": 0,
+      "max": 2400,
+      "home": 1200,
+      "range": "clamp",
+      "feedback": {
+        "property": "AxisXPosition",
+        "symbol": "ADS.PLC1.MAIN.fbGantry.fActX",
+        "unit": "mm",
+        "scale": 1,
+        "offset": 0,
+        "description": "Actual position of the bridge along X, millimetres from the home end"
+      }
+    },
+    {
+      "name": "gz",
+      "type": "prismatic",
+      "parent": "gx",
+      "origin": [0, 0, -600],
+      "axis": [0, 0, 1],
+      "min": 0,
+      "max": 1200,
+      "home": 600,
+      "range": "clamp",
+      "feedback": {
+        "property": "AxisZPosition",
+        "symbol": "ADS.PLC1.MAIN.fbGantry.fActZ",
+        "unit": "mm",
+        "scale": 1,
+        "offset": 0,
+        "description": "Actual position of the trolley across the bridge, millimetres"
+      }
+    },
+    {
+      "name": "gy",
+      "type": "prismatic",
+      "parent": "gz",
+      "origin": [0, -220, 0],
+      "axis": [0, -1, 0],
+      "min": 0,
+      "max": 1100,
+      "home": 0,
+      "range": "clamp",
+      "feedback": {
+        "property": "AxisYPosition",
+        "symbol": "ADS.PLC1.MAIN.fbGantry.fActY",
+        "unit": "mm",
+        "scale": 1,
+        "offset": 0,
+        "description": "Actual extension of the vertical axis below the trolley, millimetres down"
+      }
+    },
+    {
+      "name": "grip",
+      "type": "prismatic",
+      "parent": "gy",
+      "origin": [0, 0, 0],
+      "axis": [1, 0, 0],
+      "min": 0,
+      "max": 60,
+      "home": 0,
+      "range": "clamp",
+      "nothingAttached": "Both jaws are mirrored from this value in update(), so no geometry hangs off this node.",
+      "feedback": {
+        "property": "GripOpening",
+        "symbol": "ADS.PLC1.MAIN.fbGantry.fActGrip",
+        "unit": "mm",
+        "scale": 1,
+        "offset": 0,
+        "description": "Jaw opening per side, millimetres"
+      }
+    }
+  ]
+}

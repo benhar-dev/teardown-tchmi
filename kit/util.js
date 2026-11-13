@@ -1,8 +1,13 @@
-// Small pure helpers shared by every sim. Everything animated must be a pure
-// function of `t` (seconds) so live playback and frame capture match.
+// Small pure helpers shared by the kit and by generated controls.
+// Lengths are millimetres and angles are degrees everywhere above the pose
+// layer, because that is what CAD and PLC axis data arrive in.
 
-export const clamp01 = (x) => Math.min(1, Math.max(0, x));
+export const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+export const clamp01 = (x) => clamp(x, 0, 1);
 export const lerp = (a, b, k) => a + (b - a) * k;
+export const deg = (rad) => (rad * 180) / Math.PI;
+export const rad = (d) => (d * Math.PI) / 180;
+
 export const smooth = (x) => {
   const k = clamp01(x);
   return k * k * (3 - 2 * k);
@@ -12,43 +17,11 @@ export const easeInOutCubic = (x) => {
   const k = clamp01(x);
   return k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
 };
-export const easeOutExpo = (x) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * clamp01(x)));
-export const easeOutBack = (x, s = 1.7) => {
-  const k = clamp01(x) - 1;
-  return 1 + (s + 1) * k * k * k + s * k * k;
-};
-/** 0..1 progress of t between t0 and t1, eased. */
-export const prog = (t, t0, t1, ease = easeInOutCubic) => ease((t - t0) / (t1 - t0));
-
-/** Seeded PRNG (mulberry32). Same seed → same sequence. */
-export const rng = (seed) => {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6d2b79f5) >>> 0;
-    let x = s;
-    x = Math.imul(x ^ (x >>> 15), x | 1);
-    x ^= x + Math.imul(x ^ (x >>> 7), x | 61);
-    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
-  };
-};
-
-/** Stateless hash noise in [0,1). */
-export const hash = (n) => {
-  const x = Math.sin(n * 127.1 + 311.7) * 43758.5453;
-  return x - Math.floor(x);
-};
-
-/** Random unit vector from a PRNG. */
-export const randDir = (r) => {
-  const u = r() * 2 - 1;
-  const a = r() * Math.PI * 2;
-  const s = Math.sqrt(1 - u * u);
-  return [s * Math.cos(a), u, s * Math.sin(a)];
-};
 
 /**
- * Keyframed value: keys = [[t, value], ...] with numbers or arrays of numbers.
- * Eased between keys, held outside.
+ * Keyframed value: keys = [[at, value], ...] with numbers or arrays of numbers.
+ * Only for display interpolation (a readout easing towards a new feedback
+ * value). Never for machine state: actual position comes from the PLC.
  */
 export const keyed = (keys, t, ease = easeInOutCubic) => {
   if (t <= keys[0][0]) return keys[0][1];
@@ -64,13 +37,27 @@ export const keyed = (keys, t, ease = easeInOutCubic) => {
 };
 
 export const fmt = (n, d = 0) =>
-  Number(n).toLocaleString('en-US', {minimumFractionDigits: d, maximumFractionDigits: d});
+  Number(n).toLocaleString(undefined, {minimumFractionDigits: d, maximumFractionDigits: d});
 export const pad = (n, w) => String(Math.max(0, Math.floor(n))).padStart(w, '0');
 
+/** A finite number, or null. Everything from a binding goes through this first. */
+export const finite = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+
+/** Change detection for property setters: avoids redundant notifications and redraws. */
+export const same = (a, b, eps = 1e-9) => {
+  if (a === b) return true;
+  if (typeof a === 'number' && typeof b === 'number') return Math.abs(a - b) <= eps;
+  if (Array.isArray(a) && Array.isArray(b)) return a.length === b.length && a.every((x, i) => same(x, b[i], eps));
+  return false;
+};
+
 /**
- * Escape for HTML text and quoted attributes. Anything that reaches innerHTML
- * from the config (?config=, ?title=) goes through this: a built page is a
- * static file anyone can hand a URL to.
+ * Escape for HTML text and quoted attributes.
+ *
+ * Generated controls should build their DOM with textContent and
+ * createElement. Where a template string is unavoidable, every value that
+ * came from a binding goes through this: whoever can write a PLC string
+ * symbol would otherwise be writing the HMI's DOM.
  */
 export const escHtml = (s) =>
   String(s ?? '')
@@ -79,18 +66,3 @@ export const escHtml = (s) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-
-// Keys that would reach an object's prototype instead of its own properties.
-const UNSAFE_KEY = new Set(['__proto__', 'constructor', 'prototype']);
-
-/** Deep merge plain objects; arrays and scalars from `b` replace `a`. */
-export const merge = (a, b) => {
-  if (!b || typeof b !== 'object' || Array.isArray(b)) return b === undefined ? a : b;
-  const out = {...a};
-  for (const k of Object.keys(b)) {
-    if (UNSAFE_KEY.has(k)) continue;
-    out[k] =
-      a && typeof a[k] === 'object' && !Array.isArray(a[k]) && a[k] !== null ? merge(a[k], b[k]) : b[k];
-  }
-  return out;
-};
