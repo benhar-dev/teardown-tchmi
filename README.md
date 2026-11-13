@@ -1,6 +1,6 @@
-# teardown
+# teardown-tchmi
 
-A Claude Code skill that turns any machine into a 3D simulator you can take apart.
+An AI coding-agent skill that turns any machine into a 3D simulator you can take apart.
 
 This fork also teaches the skill to generate native TwinCAT HMI controls and
 installable NuGet packages driven by PLC property bindings. See the output-mode
@@ -18,11 +18,21 @@ Ask how something works. Claude builds it as one offline HTML page: the machine 
 
 ## Install
 
-```
-npx skills add elvarofficial/teardown -g -a claude-code
+**Claude Code:**
+
+```bash
+npx skills add benhar-dev/teardown-tchmi -g -a claude-code
 ```
 
-Then, once, in the installed folder:
+**OpenAI Codex:**
+
+```bash
+npx skills add benhar-dev/teardown-tchmi -g -a codex
+```
+
+Both commands install the forked skill rather than the upstream `elvarofficial/teardown` skill. It can coexist with the upstream skill because it has a distinct name.
+
+Then, once, in the installed skill folder (for example `~/.claude/skills/teardown-tchmi` for Claude Code):
 
 ```
 npm install && npx playwright install chromium

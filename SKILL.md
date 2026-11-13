@@ -1,5 +1,5 @@
 ---
-name: teardown
+name: teardown-tchmi
 description: Build interactive 3D machine and mechanism visualizations as standalone offline pages and films, or generate native TwinCAT HMI framework controls and NuGet packages driven by PLC property bindings. Use for machine simulators, cutaways, exploded views, visual explainers, and PLC-driven Three.js machine viewers for TwinCAT HMI.
 ---
 
